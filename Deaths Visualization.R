@@ -1,6 +1,6 @@
 #install.packages("dplyr")
-install.packages("MMWRweek")
-install.packages("lubridate")
+# install.packages("MMWRweek")
+# install.packages("lubridate")
 library(lubridate)
 library(MMWRweek)
 library(dplyr)
@@ -9,15 +9,30 @@ library(tidyverse)
 library(ggplot2)
 
 #PATH TO COVIDCOMMON PACKAGE IN CSP
-install.packages("C:/Users/gupta/OneDrive/Documents/GitHub/COVIDScenarioPipeline/R/pkgs/covidcommon", type='source', repos=NULL, force = TRUE)
+# install.packages("C:/Users/gupta/OneDrive/Documents/GitHub/COVIDScenarioPipeline/R/pkgs/covidcommon", type='source', repos=NULL, force = TRUE)
 
-csse<-covidcommon::get_CSSE_US_data()
+csse <- covidcommon::get_CSSE_US_data()
+
+
+# PULL DATA ---------------------------------------------------------------
+
+download.file(url = "https://data.cdc.gov/api/views/r8kw-7aab/rows.csv?accessType=DOWNLOAD", 
+              destfile = "data/cdc_deaths.csv")
+
+cdc_data <- read_csv("data/cdc_deaths.csv")
+# cdc_data <- read_csv("https://data.cdc.gov/resource/r8kw-7aab.csv")
+
+
 
 #PATH TO THE CDC DATA
-cdc<-read.csv("C:/Users/gupta/OneDrive/Desktop/Notes/IDD Research/COVID-19/Thesis/Provisional_COVID-19_Death_Counts_by_Week_Ending_Date_and_State.csv")
-cdc$COVID.19.Deaths[is.na(cdc$COVID.19.Deaths)]<-0
-cdc<-cdc %>% mutate(Start.Date=as.Date(cdc$Start.Date,format="%m/%d/%Y"))
-cdc<-cdc %>% mutate(End.Date=as.Date(cdc$End.Date,format="%m/%d/%Y"))
+# cdc<-read.csv("C:/Users/gupta/OneDrive/Desktop/Notes/IDD Research/COVID-19/Thesis/Provisional_COVID-19_Death_Counts_by_Week_Ending_Date_and_State.csv")
+cdc <- read_csv("data/cdc_deaths.csv")
+
+#cdc$COVID.19.Deaths[is.na(cdc$COVID.19.Deaths)]<-0
+cdc <- cdc %>% 
+    mutate(start_date = lubridate::as_date(as.Date(`Start Date`, format="%m/%d/%Y")),
+           end_date = lubridate::as_date(as.Date(`End Date`, format="%m/%d/%Y")))
+
 cdc<-cdc %>% filter(State!="United States")
 cdc<-cdc %>% filter(Group=="By Week")
 states<-unique(cdc$State)
@@ -29,7 +44,7 @@ states<-unique(cdc$State)
 #   facet_wrap(~State) +
 #   ylim(0,1000) 
 
-csse$incidDeath[is.null(csse$incidDeath)]<-0
+# csse$incidDeath[is.null(csse$incidDeath)]<-0
 
 # csse %>% ggplot(aes(x=Update,y=incidDeath))+
 #   geom_col()+xlab("Time(in Weeks)") +
@@ -37,36 +52,53 @@ csse$incidDeath[is.null(csse$incidDeath)]<-0
 #   facet_wrap(~source) +
 #   ylim(0,1000) 
 
-csse<-rename(csse,date=Update)
-csse<-rename(csse,state=source)
-csse<-rename(csse,incidD=incidDeath)
 
-cdc_spec<-cdc[,c("Start.Date","End.Date","COVID.19.Deaths","State")]
-gt_data<-csse[,c('date','source','FIPS','incidD')]
-gt_data <- gt_data %>% filter(source != "US")
+# cdc_spec<-cdc[,c("start_date","end_date","COVID.19.Deaths","State")]
+cdc_spec <- cdc %>% select(start_date, end_date, incidD=`COVID-19 Deaths`, state=State)
+# gt_data<-csse[,c('date','source','FIPS','incidD')]
+gt_data <- csse %>% select(date=Update, state=source, FIPS, incidD=incidDeath)
+gt_data <- gt_data %>% filter(state != "US")
 
 #Extracting the date per location per day
-gt_data<-gt_data %>% group_by(source,date) %>%
-  summarise(incidD=sum(incidD))
+gt_data <- gt_data %>% 
+    group_by(state, date) %>%
+    summarise(incidD=sum(incidD, na.rm = TRUE))
 
 state_full=c("Alabama","Alaska","Arizona","Arkansas","California","Colorado",
-"Connecticut","Delaware","District of Columbia","Florida","Georgia","Hawaii",
-"Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine",
-"Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri",
-"Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico",
-"New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon",
-"Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee",
-"Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin",
-"Wyoming")
+             "Connecticut","Delaware","District of Columbia","Florida","Georgia","Hawaii",
+             "Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine",
+             "Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri",
+             "Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico",
+             "New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon",
+             "Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee",
+             "Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin",
+             "Wyoming")
+
 state_short=c("AL","AK","AZ","AR","CA","CO","CT","DE","DC","FL","GA","HI","ID",
               "IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO",
               "MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA",
               "RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY")
+
+state.name
+state.abb
+
+state_names <- tibble(state = c(state.name, "Puerto Rico", "District of Columbia"), 
+                      USPS = c(state.abb, "PR", "DC"))
+
+cdc_spec <- cdc_spec %>% left_join(state_names) 
+cdc_state <- cdc_spec %>% filter(!is.na(USPS))
+
+gt_data <- gt_data %>% rename(USPS = state) %>% left_join(state_names) 
+gt_state <- gt_data %>% filter(!is.na(USPS))
+
+
 final<-data.frame(matrix(ncol = 0, nrow = 0))
-for (i in 1:length(state_full)){
-#Running for Alaska - will run in a loop for different states
-cdc_state<-cdc_spec %>% filter(State==state_full[i])
-gt_state<-gt_data %>% filter(source==state_short[i])
+# for (i in 1:length(state_full)){
+# #Running for Alaska - will run in a loop for different states
+# cdc_state<-cdc_spec %>% filter(State==state_full[i])
+# gt_state<-gt_data %>% filter(source==state_short[i])
+
+
 
 
 ###############################################################################
@@ -76,43 +108,80 @@ gt_state<-gt_data %>% filter(source==state_short[i])
 # CDC Data
 ###############################################################################
 
-###Start Truncation
-diff<-abs(cdc_state$Start.Date[1]-gt_state$date[1])
-if(cdc_state$Start.Date[1]<gt_state$date[1]){
-  df<-data.frame(source=rep("AK",diff),
-                 date=seq.Date(from = cdc_state$Start.Date[1], 
-                               to = gt_state$date[1]-1, by = 'days'),
-                 incidD=rep(0,diff))
-  gt_state<-rbind(df,gt_state)
-}else{
-  gt_state<-gt_state[24:nrows(gt_state),]
-}
+# ###Start Truncation
+# diff<-abs(cdc_state$Start.Date[1]-gt_state$date[1])
+# if(cdc_state$Start.Date[1]<gt_state$date[1]){
+#   df<-data.frame(source=rep("AK",diff),
+#                  date=seq.Date(from = cdc_state$Start.Date[1], 
+#                                to = gt_state$date[1]-1, by = 'days'),
+#                  incidD=rep(0,diff))
+#   gt_state<-rbind(df,gt_state)
+# }else{
+#   gt_state<-gt_state[24:nrows(gt_state),]
+# }
+# 
+# ###END Truncation
+# diff<-abs(cdc_state$End.Date[nrow(cdc_state)]-gt_state$date[nrow(gt_state)])
+# if(cdc_state$End.Date[nrow(cdc_state)]<gt_state$date[nrow(gt_state)]){
+#   gt_state<-gt_state[1:(nrow(gt_state)-diff),]
+# }
+# 
+# gt_state$week_cdc<-rep(1:(nrow(gt_state)/7),each=7)
+# temp<-gt_state %>% group_by(week_cdc) %>%
+#   summarise(weeklyD=sum(incidD))
+# 
+# cdc_state$week_gt<-rep(1:nrow(cdc_state),each=1)
+# final_state<-cbind(cdc_state,temp)
+# if(!all(final_state$week_cdc==final_state$week_gt)){
+#   stop("Error the weeks do not match for the CDC and CSSE Data")
+# }
+# 
+# #final_state Data for State 
+# final_state<- final_state %>% select(-week_gt) %>%
+#   rename(week=week_cdc, CDC.Death=COVID.19.Deaths, CSSE.Death=weeklyD)
+# 
+# #final_state$state<-rep(state_full[i],each=nrow(final_state))
+# final<-rbind(final,final_state)
+# 
+# 
+# }
 
-###END Truncation
-diff<-abs(cdc_state$End.Date[nrow(cdc_state)]-gt_state$date[nrow(gt_state)])
-if(cdc_state$End.Date[nrow(cdc_state)]<gt_state$date[nrow(gt_state)]){
-  gt_state<-gt_state[1:(nrow(gt_state)-diff),]
-}
 
-gt_state$week_cdc<-rep(1:(nrow(gt_state)/7),each=7)
-temp<-gt_state %>% group_by(week_cdc) %>%
-  summarise(weeklyD=sum(incidD))
-
-cdc_state$week_gt<-rep(1:nrow(cdc_state),each=1)
-final_state<-cbind(cdc_state,temp)
-if(!all(final_state$week_cdc==final_state$week_gt)){
-  stop("Error the weeks do not match for the CDC and CSSE Data")
-}
-
-#final_state Data for State 
-final_state<- final_state %>% select(-week_gt) %>%
-  rename(week=week_cdc, CDC.Death=COVID.19.Deaths, CSSE.Death=weeklyD)
-
-#final_state$state<-rep(state_full[i],each=nrow(final_state))
-final<-rbind(final,final_state)
+gt_state <- gt_state %>% 
+  mutate(date=lubridate::as_date(date), ## data is for previous day flu admission
+         week=epiweek(date),
+         year=epiyear(date),
+         datew=MMWRweek2Date(year, week, 7)) %>%
+  dplyr::select(-c(date, week, year, contains("cum"))) %>%
+  group_by(state, USPS, datew) %>%  ##summarize daily data into weekly counts
+  summarise(across(where(is.numeric), ~sum(.x, na.rm = TRUE))) %>%  # can change this to be individual variables if you want
+  as_tibble() %>%
+  mutate(date = datew)
 
 
-}
+final <- cdc_state %>%
+    mutate(source = "cdc") %>%
+    rename(date = end_date) %>%
+    bind_rows(
+        gt_state %>% mutate(source = "csse")
+    )
+
+# final %>% 
+#     group_by(state) %>%
+#     filter()
+#     summarise(min_date = min(date)) %>%
+#     View()
+
+
+final %>% 
+    filter(USPS %in% c("NY", "CA","TX", "OH","NJ","PA")) %>%
+    ggplot() +
+    geom_col(aes(x=date, y=incidD, color=source), position = position_dodge()) +
+    facet_wrap(~state, ncol = 2)
+    
+    
+
+
 final %>% ggplot()+
   geom_col(aes(x=Start.Date,y=CSSE.Death,fill="CSSE"))+ 
   geom_col(aes(x=Start.Date,y=CDC.Death,fill="CDC"))+
