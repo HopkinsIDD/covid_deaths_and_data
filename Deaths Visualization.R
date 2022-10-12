@@ -1,4 +1,8 @@
 #install.packages("dplyr")
+install.packages("MMWRweek")
+install.packages("lubridate")
+library(lubridate)
+library(MMWRweek)
 library(dplyr)
 #install.packages("tidyverse")
 library(tidyverse)
@@ -34,6 +38,7 @@ csse$incidDeath[is.null(csse$incidDeath)]<-0
 #   ylim(0,1000) 
 
 csse<-rename(csse,date=Update)
+csse<-rename(csse,state=source)
 csse<-rename(csse,incidD=incidDeath)
 
 cdc_spec<-cdc[,c("Start.Date","End.Date","COVID.19.Deaths","State")]
@@ -128,3 +133,19 @@ final %>% ggplot()+
 #   geom_col(aes(x=date,y=incidD))+
 #   facet_wrap(~source)+
 #   ylim(0,600) 
+
+res <- csse %>% 
+  mutate(date=lubridate::as_date(date), ## data is for previous day flu admission
+         week=epiweek(date),
+         year=epiyear(date),
+         datew=MMWRweek2Date(year, week, 7)) %>%
+  dplyr::select(-c(date, week, year, contains("cum"))) %>%
+  group_by(state, datew) %>%  ##summarize daily data into weekly counts
+  summarise(across(where(is.numeric), ~sum(.x, na.rm = TRUE))) %>%  # can change this to be individual variables if you want
+  ungroup() %>%
+  mutate(date = datew)
+
+res %>% ggplot() +
+  geom_col(aes(x=date,y=incidDeath))+
+  facet_wrap(~state)+
+  ylim(0,1000)
