@@ -106,3 +106,26 @@ final %>%
 
 
 write_csv(final,file="data/CDC_CSSE_WeeklyDeaths.csv")
+
+data%>%
+  filter(USPS %in% c("NY","FL","TN","MO"))%>%
+  ggplot()+ geom_col(aes(x=date,y=incidD))+
+  labs(title="Deaths for 4 States",x="Date",y="Deaths")+
+  coord_cartesian(ylim = c(0, 6000))+
+  facet_wrap(~state)
+
+# Making groups for visualization
+groups<- data %>% group_by(USPS) %>% summarise(max=max(incidD))
+q1<-quantile(groups$max, 0.25)
+q2<-quantile(groups$max, 0.50)
+q3<-quantile(groups$max, 0.75)
+
+q1_g<- groups %>% filter(max<=q1) %>% select(USPS)
+q2_g<- groups %>% filter(max>q1 & max<=q2) %>% select(USPS)
+q3_g<- groups %>% filter(max>q2 & max<=q3) %>% select(USPS)
+q4_g<- groups %>% filter(max>q3)%>% select(USPS)
+
+q1_lim<-150
+q2_lim<-500
+q3_lim<-1200
+q4_lim<-5000
