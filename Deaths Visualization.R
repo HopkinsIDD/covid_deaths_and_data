@@ -11,7 +11,7 @@ library(ggplot2)
 #PATH TO COVIDCOMMON PACKAGE IN CSP
 install.packages("C:/Users/gupta/OneDrive/Documents/GitHub/COVIDScenarioPipeline/R/pkgs/covidcommon", type='source', repos=NULL, force = TRUE)
 
-csse <- covidcommon::get_CSSE_US_data()
+csse <- covidcommon::get_CSSE_US_data(incl_unassigned = TRUE)
 
 
 # PULL DATA ---------------------------------------------------------------
@@ -40,10 +40,17 @@ cdc <- cdc %>% select(start_date, end_date, incidD=`COVID-19 Deaths`, state=Stat
 gt_data <- csse %>% select(date=Update, state=source, FIPS, incidD=incidDeath)
 gt_data <- gt_data %>% filter(state != "US")
 
+gt_dataI <- csse %>% select(date=Update, state=source, FIPS, incidI)
+gt_dataI<- gt_dataI %>% filter(state != "US")
+
 #Extracting the date per location per day
-gt_data <- gt_data %>% 
+gt_data <- gt_data %>%
     group_by(state, date) %>%
     summarise(incidD=sum(incidD, na.rm = TRUE))
+
+gt_dataI <- gt_dataI %>% 
+  group_by(state, date) %>%
+  summarise(incidI=sum(incidI, na.rm = TRUE))
 
 # state_full=c("Alabama","Alaska","Arizona","Arkansas","California","Colorado",
 #              "Connecticut","Delaware","District of Columbia","Florida","Georgia","Hawaii",
@@ -67,14 +74,27 @@ state_names <- tibble(state = c(state.name, "Puerto Rico", "District of Columbia
 cdc <- cdc %>% left_join(state_names) 
 cdc <- cdc %>% filter(!is.na(USPS))
 
-gt_data <- gt_data %>% rename(USPS = state) %>% left_join(state_names) 
+gt_data <- gt_data %>% rename(USPS = state) %>% left_join(state_names)
 gt_data <- gt_data %>% filter(!is.na(USPS))
 
+gt_dataI <- gt_dataI %>% rename(USPS = state) %>% left_join(state_names) 
+gt_dataI <- gt_dataI %>% filter(!is.na(USPS))
 
 final<-data.frame(matrix(ncol = 0, nrow = 0))
 
 
-gt_data <- gt_data %>% 
+gt_data <- gt_data %>%
+  mutate(date=lubridate::as_date(date), ## data is for previous day flu admission
+         week=epiweek(date),
+         year=epiyear(date),
+         datew=MMWRweek2Date(year, week, 7)) %>%
+  dplyr::select(-c(date, week, year, contains("cum"))) %>%
+  group_by(state, USPS, datew) %>%  ##summarize daily data into weekly counts
+  summarise(across(where(is.numeric), ~sum(.x, na.rm = TRUE))) %>%  # can change this to be individual variables if you want
+  as_tibble() %>%
+  mutate(date = datew)
+
+gt_dataI <- gt_dataI %>% 
   mutate(date=lubridate::as_date(date), ## data is for previous day flu admission
          week=epiweek(date),
          year=epiyear(date),
@@ -105,7 +125,8 @@ final %>%
 
 
 
-write_csv(final,file="data/CDC_CSSE_WeeklyDeaths.csv")
+write_csv(gt_data,file="data/CSSE_WeeklyDeaths_incl_assigned.csv")
+write_csv(gt_dataI,file="data/CSSE_WeeklyCases_incl_assigned.csv")
 
 data%>%
   filter(USPS %in% c("NY","FL","TN","MO"))%>%
