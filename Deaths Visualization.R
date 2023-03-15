@@ -12,6 +12,7 @@ library(ggplot2)
 install.packages("C:/Users/gupta/OneDrive/Documents/GitHub/COVIDScenarioPipeline/R/pkgs/covidcommon", type='source', repos=NULL, force = TRUE)
 
 csse <- covidcommon::get_CSSE_US_data(incl_unassigned = TRUE)
+hosp<-covidcommon::get_hhsCMU_hospCurr_st_data()
 
 
 # PULL DATA ---------------------------------------------------------------
@@ -43,6 +44,9 @@ gt_data <- gt_data %>% filter(state != "US")
 gt_dataI <- csse %>% select(date=Update, state=source, FIPS, incidI)
 gt_dataI<- gt_dataI %>% filter(state != "US")
 
+gt_dataH <- hosp %>% select(date=Update, state=source, FIPS, incidH=hospCurr_confirmed)
+gt_dataH<- gt_dataH %>% filter(state != "US")
+
 #Extracting the date per location per day
 gt_data <- gt_data %>%
     group_by(state, date) %>%
@@ -51,6 +55,10 @@ gt_data <- gt_data %>%
 gt_dataI <- gt_dataI %>% 
   group_by(state, date) %>%
   summarise(incidI=sum(incidI, na.rm = TRUE))
+
+gt_dataH <- gt_dataH %>% 
+  group_by(state, date) %>%
+  summarise(incidH=sum(incidH, na.rm = TRUE))
 
 # state_full=c("Alabama","Alaska","Arizona","Arkansas","California","Colorado",
 #              "Connecticut","Delaware","District of Columbia","Florida","Georgia","Hawaii",
@@ -80,6 +88,9 @@ gt_data <- gt_data %>% filter(!is.na(USPS))
 gt_dataI <- gt_dataI %>% rename(USPS = state) %>% left_join(state_names) 
 gt_dataI <- gt_dataI %>% filter(!is.na(USPS))
 
+gt_dataH <- gt_dataH %>% rename(USPS = state) %>% left_join(state_names) 
+gt_dataH <- gt_dataH %>% filter(!is.na(USPS))
+
 final<-data.frame(matrix(ncol = 0, nrow = 0))
 
 
@@ -95,6 +106,17 @@ gt_data <- gt_data %>%
   mutate(date = datew)
 
 gt_dataI <- gt_dataI %>% 
+  mutate(date=lubridate::as_date(date), ## data is for previous day flu admission
+         week=epiweek(date),
+         year=epiyear(date),
+         datew=MMWRweek2Date(year, week, 7)) %>%
+  dplyr::select(-c(date, week, year, contains("cum"))) %>%
+  group_by(state, USPS, datew) %>%  ##summarize daily data into weekly counts
+  summarise(across(where(is.numeric), ~sum(.x, na.rm = TRUE))) %>%  # can change this to be individual variables if you want
+  as_tibble() %>%
+  mutate(date = datew)
+
+gt_dataH <- gt_dataH %>% 
   mutate(date=lubridate::as_date(date), ## data is for previous day flu admission
          week=epiweek(date),
          year=epiyear(date),
@@ -127,6 +149,7 @@ final %>%
 
 write_csv(gt_data,file="data/CSSE_WeeklyDeaths_incl_assigned.csv")
 write_csv(gt_dataI,file="data/CSSE_WeeklyCases_incl_assigned.csv")
+write_csv(gt_dataH,file="data/CSSE_WeeklyHospitalizations_incl_assigned.csv")
 
 data%>%
   filter(USPS %in% c("NY","FL","TN","MO"))%>%

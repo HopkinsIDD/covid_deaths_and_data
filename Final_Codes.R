@@ -21,6 +21,7 @@ library(caret)
 
 datD<-read_csv("data/CSSE_WeeklyDeaths_incl_assigned.csv")
 datI<-read_csv("data/CSSE_WeeklyCases_incl_assigned.csv")
+datH<-read_csv("data/CSSE_WeeklyHospitalizations_incl_assigned.csv")
 
 datD<- datD %>%
   select(incidD,date,USPS) %>%
@@ -30,8 +31,12 @@ datI<- datI %>%
   select(incidI,date,USPS) %>%
   mutate(incidI =ifelse(incidI<0,0,incidI))
 
-dat<- datD %>%
-  left_join(datI,by=c("date","USPS"))
+datH<- datH %>%
+  select(incidH,date,USPS) %>%
+  mutate(incidH =ifelse(incidH<0,0,incidH))
+
+# dat<- datD %>%
+#   left_join(datI,by=c("date","USPS"))
 
 moving_average<- function(data,w=3){
   mov_avg<-rep(0,length(data))
@@ -92,7 +97,7 @@ spline_omi_distri_deaths<-function(date,incidD,spline_omi,pois_out,wave){
     summarise(wlength=length(wave))
   
   for(i in out){
-    #i=out[4]
+    #i=out[7]
     w<- temp %>%
       filter(date==i) %>%
       pull(wave)
@@ -111,6 +116,13 @@ spline_omi_distri_deaths<-function(date,incidD,spline_omi,pois_out,wave){
       date_l=(temp %>% filter(date<=i) %>% pull(date))
       date_l=date_l[length(date_l)- zero_length]
     }
+    pos=which(temp %>% filter(pois_out==1) %>% pull(date) == i)
+    if(pos!=1){
+      if((temp %>% filter(pois_out==1) %>% pull(wave))[pos] == 
+         (temp %>% filter(pois_out==1) %>% pull(wave))[pos-1]){
+        date_l=((temp %>% filter(pois_out==1) %>% pull(date))[pos-1])
+        date_l=(temp %>% pull(date))[which(temp %>% pull(date) == date_l)+1]
+      }}
     
     temp<-temp %>%
       mutate(flag=rep(0,length(date)),
@@ -144,7 +156,7 @@ spline_omi_distri_cases<-function(date,incidD,spline_omi,pois_out,wave,incidI){
     summarise(wlength=length(wave))
   
   for(i in out){
-    #i=out[2]
+    #i=out[1]
     w<- temp %>%
       filter(date==i) %>%
       pull(wave)
@@ -163,6 +175,13 @@ spline_omi_distri_cases<-function(date,incidD,spline_omi,pois_out,wave,incidI){
       date_l=(temp %>% filter(date<=i) %>% pull(date))
       date_l=date_l[length(date_l)- zero_length]
     }
+    pos=which(temp %>% filter(pois_out==1) %>% pull(date) == i)
+    if(pos!=1){
+       if((temp %>% filter(pois_out==1) %>% pull(wave))[pos] == 
+        (temp %>% filter(pois_out==1) %>% pull(wave))[pos-1]){
+      date_l=((temp %>% filter(pois_out==1) %>% pull(date))[pos-1])
+      date_l=(temp %>% pull(date))[which(temp %>% pull(date) == date_l)+1]
+    }}
     
     temp<-temp %>%
       mutate(diff=incidD-spline_omi,
@@ -226,6 +245,17 @@ if(method=="Cases"){
            spline_omi=ifelse(spline_omi<0,0,spline_omi),
            incidD_new=spline_omi_distri_cases(date,incidD,spline_omi,
                                                pois_stat_99.9_carlinga_scaled,wave,incidI))
+    # left_join(datH,by=c("USPS","date")) %>%
+    # filter(!is.na(incidH)) %>%
+    # group_by(USPS) %>%
+    # mutate(spline_spar=round((ss(date,incidH,spar =0))$y),
+    #        wave=wave_number(date,incidH,spline_spar),
+    #        spline_omi=spline_omit_out(date=date,
+    #                                   incidD=incidD,
+    #                                   pois_out=pois_stat_99.9_carlinga_scaled),
+    #        spline_omi=ifelse(spline_omi<0,0,spline_omi),
+    #        incidD_new=spline_omi_distri_cases(date,incidD,spline_omi,
+    #                                           pois_stat_99.9_carlinga_scaled,wave,incidH))
 }
 
 temp2 %>%
@@ -241,14 +271,22 @@ final<- temp2 %>%
               select(date,incidD,USPS,pois_stat_99.9_carlinga_scaled) %>%
               mutate(TYPE="old"))
 
-pdf(file= "INCIDENT_DEATHS_CORRECTED_WITH_CASES_OVERLAPPED.pdf" )
+pdf(file= "INCIDENT_DEATHS_CORRECTED_WITH_CASES_OVERLAPPED_TRANSPARENT.pdf" )
 for(abr in  c(state.abb, "PR", "DC")){
-  print(final %>%
-          filter(USPS==abr) %>%
-          ggplot()+ geom_col(aes(x=date,incidD,color=TYPE,fill=TYPE),position = "identity")+
-          #geom_line(aes(x=date,y=spline_lambda),color="black")+
-          #geom_line(aes(x=date,y=spline_omi),color="green")+
-          labs(title=abr))
+  print(
+    #ggarrange(
+    temp2 %>%
+      filter(USPS==abr) %>%
+      ggplot()+ geom_col(aes(x=date,y=incidD_new),color="green",fill="green",position = "identity")+
+      geom_col(aes(x=date,y=incidD),color="black",alpha=0.00001,position = "identity")+
+      labs(title=abr)
+      #theme(legend.key = element_rect(fill = "white", colour = "black"))
+      #theme(legend.position = "none")
+    # final %>%
+    #   filter(USPS==abr,TYPE=="new") %>%
+    #   ggplot()+ geom_col(aes(x=date,y=incidD,fill=factor(pois_stat_99.9_carlinga_scaled)),position = "identity")+
+    #   theme(legend.position = "none"),nrow = 2,ncol = 1)
+    )
 }
 dev.off()
 
