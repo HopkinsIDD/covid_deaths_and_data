@@ -19,21 +19,7 @@ library(caret)
 #   select(incidD,state,date,USPS) %>% 
 #   mutate(incidD=ifelse(incidD<0,0,incidD))
 
-datD<-read_csv("data/CSSE_WeeklyDeaths_incl_assigned.csv")
-datI<-read_csv("data/CSSE_WeeklyCases_incl_assigned.csv")
-datH<-read_csv("data/CSSE_WeeklyHospitalizations_incl_assigned.csv")
 
-datD<- datD %>%
-  select(incidD,date,USPS) %>%
-  mutate(incidD =ifelse(incidD<0,0,incidD))
-
-datI<- datI %>%
-  select(incidI,date,USPS) %>%
-  mutate(incidI =ifelse(incidI<0,0,incidI))
-
-datH<- datH %>%
-  select(incidH,date,USPS) %>%
-  mutate(incidH =ifelse(incidH<0,0,incidH))
 
 # dat<- datD %>%
 #   left_join(datI,by=c("date","USPS"))
@@ -83,12 +69,14 @@ calc_zero_length<-function(incidD,date,d){
   return(zero_length)
 }
 
-spline_omi_distri_deaths<-function(date,incidD,spline_omi,pois_out,wave){
-  temp<-data.frame(date,incidD,spline_omi,pois_out,wave)
+spline_omi_distri_deaths<-function(date,incidD,spline_omi,pois_out,wave,
+                                   diff=rep(0,length(incidD)),
+                                   low_date=rep("2000-01-25",length(incidD))){
+  temp<-data.frame(date,incidD,spline_omi,pois_out,wave,diff,low_date)
   temp<- temp %>%
-    mutate(diff=incidD-spline_omi)
+    mutate(spline_omi=ifelse(diff!=0,incidD-diff,spline_omi),
+           diff=incidD-spline_omi)
   out<-temp %>%
-    #filter(pois_stat_99.9_carlinga_scaled==1)%>%
     filter(pois_out==1) %>%
     pull(date)
   
@@ -118,36 +106,42 @@ spline_omi_distri_deaths<-function(date,incidD,spline_omi,pois_out,wave){
     }
     pos=which(temp %>% filter(pois_out==1) %>% pull(date) == i)
     if(pos!=1){
-      if((temp %>% filter(pois_out==1) %>% pull(wave))[pos] == 
-         (temp %>% filter(pois_out==1) %>% pull(wave))[pos-1]){
+      #if((temp %>% filter(pois_out==1) %>% pull(wave))[pos] ==
+      if(w[1] == (temp %>% filter(pois_out==1) %>% pull(wave))[pos-1]){
         date_l=((temp %>% filter(pois_out==1) %>% pull(date))[pos-1])
         date_l=(temp %>% pull(date))[which(temp %>% pull(date) == date_l)+1]
       }}
+    if((temp %>% filter(date==i) %>% pull(low_date))!="2000-01-25"){
+      date_l_s=temp %>% filter(date==i) %>% pull(low_date)
+      if(date_l_s<(temp %>% pull(date))[1]){
+        date_l_s=(temp %>% pull(date))[1]
+      }
+      date_l_s=(temp %>% filter(date<=date_l) %>% pull(date))[nrow(temp %>% filter(date<=date_l))]
+      if(date_l_s>date_l){
+        date_l=date_l_s
+      }
+    }
     
     temp<-temp %>%
       mutate(flag=rep(0,length(date)),
-             #flag=ifelse(wave %in% w & date<=i,1,flag),
              flag=ifelse(date>=date_l & date<=i,1,flag),
              incidD_new=incidD*flag,
              diff_new=diff*flag,
              spline_omi_new=spline_omi*flag,
-             incidI_new=incidI*flag,
-             # incidD_add=ifelse(bol,
-             #                   round(spline_omi_new/sum(spline_omi_new)*max(diff_new)),
-             #                   round(incidI_new/sum(incidI_new)*max(diff_new))),
-             # incidD_new=incidD_add+spline_omi_new,
              incidD_new=round(spline_omi_new/sum(spline_omi_new)*max(diff_new)+spline_omi_new),
              incidD=ifelse(flag==1,incidD_new,incidD))
   }
   return(temp %>% pull(incidD))
 }
 
-spline_omi_distri_cases<-function(date,incidD,spline_omi,pois_out,wave,incidI){
-  temp<-data.frame(date,incidD,spline_omi,pois_out,wave,incidI)
-  # temp<- temp %>%
-  #   mutate(diff=incidD-spline_omi)
+spline_omi_distri_cases<-function(date,incidD,spline_omi,pois_out,wave,incidI,
+                                      diff=rep(0,length(incidD)),
+                                      low_date=rep("2000-01-25",length(incidD))){
+  temp<-data.frame(date,incidD,spline_omi,pois_out,wave,incidI,diff,low_date)
+  temp<- temp %>%
+    mutate(spline_omi=ifelse(diff!=0,incidD-diff,spline_omi),
+           diff=incidD-spline_omi)
   out<-temp %>%
-    #filter(pois_stat_99.9_carlinga_scaled==1)%>%
     filter(pois_out==1) %>%
     pull(date)
   
@@ -156,7 +150,6 @@ spline_omi_distri_cases<-function(date,incidD,spline_omi,pois_out,wave,incidI){
     summarise(wlength=length(wave))
   
   for(i in out){
-    #i=out[1]
     w<- temp %>%
       filter(date==i) %>%
       pull(wave)
@@ -177,38 +170,66 @@ spline_omi_distri_cases<-function(date,incidD,spline_omi,pois_out,wave,incidI){
     }
     pos=which(temp %>% filter(pois_out==1) %>% pull(date) == i)
     if(pos!=1){
-       if((temp %>% filter(pois_out==1) %>% pull(wave))[pos] == 
-        (temp %>% filter(pois_out==1) %>% pull(wave))[pos-1]){
-      date_l=((temp %>% filter(pois_out==1) %>% pull(date))[pos-1])
-      date_l=(temp %>% pull(date))[which(temp %>% pull(date) == date_l)+1]
-    }}
-    
+      #if((temp %>% filter(pois_out==1) %>% pull(wave))[pos] ==
+      if(w[1] == (temp %>% filter(pois_out==1) %>% pull(wave))[pos-1]){
+        date_l=((temp %>% filter(pois_out==1) %>% pull(date))[pos-1])
+        date_l=(temp %>% pull(date))[which(temp %>% pull(date) == date_l)+1]
+      }}
+    if((temp %>% filter(date==i) %>% pull(low_date))!="2000-01-25"){
+      date_l_s=temp %>% filter(date==i) %>% pull(low_date)
+      if(date_l_s<(temp %>% pull(date))[1]){
+        date_l_s=(temp %>% pull(date))[1]
+      }
+      date_l_s=(temp %>% filter(date<=date_l) %>% pull(date))[nrow(temp %>% filter(date<=date_l))]
+      if(date_l_s>date_l){
+        date_l=date_l_s
+      }
+    }
+    # print(i)
+    # print((temp %>% filter(date==i) %>% pull(low_date)))
+    # print(date_l)
+    # print(USPS)
+    # print("=======")
     temp<-temp %>%
-      mutate(diff=incidD-spline_omi,
-             flag=rep(0,length(date)),
-             #flag=ifelse(wave %in% w & date<=i,1,flag),
-             flag=ifelse(date>=date_l & date<=i,1,flag),
-             incidD_new=incidD*flag,
-             diff_new=diff*flag,
-             spline_omi_new=spline_omi*flag,
-             incidI_new=incidI*flag,
-             # incidD_add=ifelse(bol,
-             #                   round(spline_omi_new/sum(spline_omi_new)*max(diff_new)),
-             #                   round(incidI_new/sum(incidI_new)*max(diff_new))),
-             # incidD_new=incidD_add+spline_omi_new,
-             incidD_add=incidI_new/sum(incidI_new)*max(diff_new),
-             incidD_new=round(incidD-diff_new+incidD_add),
-             #incidD_new=round(incidI_new/sum(incidI_new)*max(diff_new)+spline_omi_new),
-             incidD=ifelse(flag==1,incidD_new,incidD))
+      mutate(#diff=incidD-spline_omi,
+        flag=rep(0,length(date)),
+        #flag=ifelse(wave %in% w & date<=i,1,flag),
+        flag=ifelse(date>=date_l & date<=i,1,flag),
+        incidD_new=incidD*flag,
+        diff_new=diff*flag,
+        spline_omi_new=spline_omi*flag,
+        incidI_new=incidI*flag,
+        # incidD_add=ifelse(bol,
+        #                   round(spline_omi_new/sum(spline_omi_new)*max(diff_new)),
+        #                   round(incidI_new/sum(incidI_new)*max(diff_new))),
+        # incidD_new=incidD_add+spline_omi_new,
+        incidD_add=incidI_new/sum(incidI_new)*max(diff_new),
+        incidD_new=round(incidD-diff_new+incidD_add),
+        #incidD_new=round(incidI_new/sum(incidI_new)*max(diff_new)+spline_omi_new),
+        incidD=ifelse(flag==1,incidD_new,incidD))
   }
   return(temp %>% pull(incidD))
 }
+
+
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+
+
+datD<-read_csv("data/CSSE_WeeklyDeaths_incl_assigned.csv")
+datD<- datD %>%
+  select(incidD,date,USPS) %>%
+  mutate(incidD =ifelse(incidD<0,0,incidD))
 
 ci=99.9
 p=1-(1-ci/100)/2
 
 
 method="Cases"
+sup="NoSupport"
 
 
 dat<- datD %>%
@@ -219,6 +240,25 @@ dat<- datD %>%
          incidD_movavg_simple=ifelse(incidD>2*mov_incidD,1,0),
          pois_stat_99.9_carlinga_scaled=pois_out_statology*carlinga_out*incidD_movavg_simple) %>%
   select(incidD,date,USPS,pois_stat_99.9_carlinga_scaled) 
+
+if(sup=="Support"){
+  datS<-read_csv("data/CSSE_Corrections.csv")
+  datS<- datS %>%
+    select(date,USPS,out,diff,low_date) %>%
+    mutate(date=as.Date(date,format="%m/%d/%Y"),
+           low_date=as.Date(low_date,format="%m/%d/%Y"),
+           out=ifelse(is.na(out),0,out),
+           diff=ifelse(is.na(diff),0,diff))
+  dat<-dat %>%
+    left_join(datS,by=c("date","USPS")) %>%
+    mutate(pois_stat_99.9_carlinga_scaled=
+             ifelse(pois_stat_99.9_carlinga_scaled ==1 | out==1,1,0)) %>%
+    select(-c(out))
+} else{
+  dat <- dat %>%
+    mutate(diff=rep(0,length(incidD)),
+           low_date=rep("2000-01-25",length(incidD)))
+}
 
 if(method=="Deaths"){
 temp2<-dat %>%
@@ -231,9 +271,16 @@ temp2<-dat %>%
                                     pois_out=pois_stat_99.9_carlinga_scaled),
          spline_omi=ifelse(spline_omi<0,0,spline_omi),
          incidD_new=spline_omi_distri_deaths(date,incidD,spline_omi,
-                                     pois_stat_99.9_carlinga_scaled,wave))
+                                     pois_stat_99.9_carlinga_scaled,wave,
+                                     diff,low_date),
+         incidD_new=ifelse(is.nan(incidD_new),incidD,incidD_new))
 }
 if(method=="Cases"){
+  datI<-read_csv("data/CSSE_WeeklyCases_incl_assigned.csv")
+  datI<- datI %>%
+    select(incidI,date,USPS) %>%
+    mutate(incidI =ifelse(incidI<0,0,incidI))
+  
   temp2<- dat %>%
     left_join(datI,by=c("USPS","date")) %>%
     group_by(USPS) %>%
@@ -244,24 +291,17 @@ if(method=="Cases"){
                                       pois_out=pois_stat_99.9_carlinga_scaled),
            spline_omi=ifelse(spline_omi<0,0,spline_omi),
            incidD_new=spline_omi_distri_cases(date,incidD,spline_omi,
-                                               pois_stat_99.9_carlinga_scaled,wave,incidI))
-    # left_join(datH,by=c("USPS","date")) %>%
-    # filter(!is.na(incidH)) %>%
-    # group_by(USPS) %>%
-    # mutate(spline_spar=round((ss(date,incidH,spar =0))$y),
-    #        wave=wave_number(date,incidH,spline_spar),
-    #        spline_omi=spline_omit_out(date=date,
-    #                                   incidD=incidD,
-    #                                   pois_out=pois_stat_99.9_carlinga_scaled),
-    #        spline_omi=ifelse(spline_omi<0,0,spline_omi),
-    #        incidD_new=spline_omi_distri_cases(date,incidD,spline_omi,
-    #                                           pois_stat_99.9_carlinga_scaled,wave,incidH))
+                                               pois_stat_99.9_carlinga_scaled,wave,incidI,
+                                               diff,low_date),
+           incidD_new=ifelse(is.nan(incidD_new),incidD,incidD_new))
 }
 
-temp2 %>%
-  filter(USPS==abr) %>%
-  ggplot()+geom_col(aes(x=date,y=incidI,fill=factor(wave)))+
-  geom_line(aes(x=date,y=spline_spar))
+
+
+# temp2 %>%
+#   filter(USPS==abr) %>%
+#   ggplot()+geom_col(aes(x=date,y=incidI,fill=factor(wave)))+
+#   geom_line(aes(x=date,y=spline_spar))
 
 final<- temp2 %>%
   select(date,incidD_new,USPS,pois_stat_99.9_carlinga_scaled) %>%
@@ -271,7 +311,7 @@ final<- temp2 %>%
               select(date,incidD,USPS,pois_stat_99.9_carlinga_scaled) %>%
               mutate(TYPE="old"))
 
-pdf(file= "INCIDENT_DEATHS_CORRECTED_WITH_CASES_OVERLAPPED_TRANSPARENT.pdf" )
+pdf(file= "Deaths-Corrected-Cases-With-No-CSSE-Support.pdf" )
 for(abr in  c(state.abb, "PR", "DC")){
   print(
     #ggarrange(
@@ -303,3 +343,4 @@ new_total<-final %>%
 total<- new_total %>%
   left_join(old_total,by="USPS") %>%
   mutate(diff=tot_new-tot_old)
+View(total)
