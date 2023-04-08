@@ -398,12 +398,13 @@ dat_t<-dat
 dat_t$state<-factor(dat$state,levels = unique(dat$state),ordered=TRUE)
 dat_t %>%
   filter(USPS %in% c("DE","AR","MD","MO","NE","OK")) %>%
+  #filter(USPS %in% c("MD")) %>%
   ggplot() + 
   geom_col(aes(x = date, y = incidD, fill = factor(scaled_pois_ci_99.9_carlinga_out))) + 
-  geom_vline(aes(xintercept = as.Date("2021-5-15", format = "%Y-%m-%d"), color = "May 15, 2021"), size = 1) +
-  geom_vline(aes(xintercept = as.Date("2021-9-25", format = "%Y-%m-%d"), color = "September 9, 2021"), size = 1) +
-  geom_vline(aes(xintercept = as.Date("2021-12-11", format = "%Y-%m-%d"), color = "December 11, 2021"), size = 1) +
-  scale_color_manual(values = c("dark green", "brown", "black"), 
+  geom_vline(aes(xintercept = as.Date("2021-5-15", format = "%Y-%m-%d"), color = "May 15, 2021"), size = 1.2,lty=5) +
+  geom_vline(aes(xintercept = as.Date("2021-6-19", format = "%Y-%m-%d"), color = "June 19, 2021"), size = 1.2,lty=5) +
+  #geom_vline(aes(xintercept = as.Date("2021-12-11", format = "%Y-%m-%d"), color = "December 11, 2021"), size = 1) +
+  scale_color_manual(values = c("dark green", "black"), 
                      name = "End of time frames") +
   guides(fill = "none") +
   labs(x = "Date", y = "Reported Deaths") +

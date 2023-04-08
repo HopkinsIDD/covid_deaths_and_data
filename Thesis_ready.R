@@ -86,12 +86,29 @@ calc_zero_length<-function(incidD,date,d){
   return(zero_length)
 }
 
-death_distribution<-function(date,incidD,pois_out,incidI=incidD,diff=rep(0,length(incidD)),
+death_distribution<-function(date,incidD,pois_out,use_cases=FALSE,incidI=incidD,
+                             support=FALSE,diff=rep(0,length(incidD)),
+                             out_csse=rep(0,length(incidD)),
                                   low_date=rep(NA,length(incidD))){
-
-  temp<-data.frame(date,incidD,pois_out,incidI,diff,low_date)
+  temp<-data.frame(date,incidD,pois_out,incidI,diff,low_date,out_csse)
+  if(use_cases){
+    if(all(incidI==incidD)){
+      stop("Please provide additional data for back distribution")
+    }
+  }
+  # if(support){
+  #   if(all(out_csse==0)){
+  #     stop("Please provide additional supporting data")
+  #   } else{
+  #     temp<- temp %>%
+  #       mutate(pois_out= ifelse(pois_out ==1 | out_csse==1,1,0)) %>%
+  #       select(-c(out_csse))
+  #   }
+  # }
+  
   temp<- temp %>%
-    mutate(wave=wave_number(date,incidD),
+    mutate(og=incidD,
+           wave=wave_number(date,incidD),
            spline_omi=spline_omit_out(date=date,
                                       incidD=incidD,
                                       pois_out=pois_out),
@@ -167,6 +184,8 @@ death_distribution<-function(date,incidD,pois_out,incidI=incidD,diff=rep(0,lengt
                incidD=ifelse(flag==1,incidD_new,incidD))
     }
   }
+  temp<- temp %>%
+    mutate(incidD=ifelse(is.nan(incidD),og,incidD))
   return(temp %>% pull(incidD))
 }
 
@@ -186,8 +205,6 @@ dat<- datD %>%
   mutate(out=outlier_detection(date,incidD))
 
 graphs=FALSE
-method="cases"
-support=TRUE
 
 if(graphs){
 pdf(file= "final/outlier/Outlier Detection by Combination 3 Thesis Ready.pdf" )
@@ -211,34 +228,46 @@ datS<- datS %>%
          out_csse=ifelse(is.na(out_csse),0,out_csse),
          no=ifelse(is.na(no),0,no))
 
-if(support){
-  dat<-dat %>%
-    left_join(datS,by=c("date","USPS")) %>%
-    mutate(out= ifelse(out ==1 | out_csse==1,1,0)) %>%
-    select(-c(out_csse))
-} else{
-  dat <- dat %>%
-    mutate(no=rep(0,length(incidD)),
-           back_date=rep(NA,length(incidD)))
-}
+# if(support){
+#   dat<-dat %>%
+#     left_join(datS,by=c("date","USPS")) %>%
+#     mutate(out= ifelse(out ==1 | out_csse==1,1,0)) %>%
+#     select(-c(out_csse))
+# } else{
+#   dat <- dat %>%
+#     mutate(no=rep(0,length(incidD)),
+#            back_date=rep(NA,length(incidD)))
+# }
 
 datI<-read_csv("final/data/CSSE_WeeklyCasess_DIRECT_DOWNLOAD.csv")
 datI<- datI %>%
   select(incidI,date,USPS) %>%
   mutate(incidI =ifelse(incidI<0,0,incidI))
-if(method=="deaths"){
-  temp2<-dat %>%
-    group_by(USPS) %>%
-    mutate(incidD_new=death_distribution(date,incidD,pois_out=out,diff=no,low_date=back_date),
-           incidD_new=ifelse(is.nan(incidD_new),incidD,incidD_new))
-} else {
-  temp2<- dat %>%
-    left_join(datI,by=c("USPS","date")) %>%
-    group_by(USPS) %>%
-    mutate(incidD_new=death_distribution(date,incidD,pois_out = out,incidI=incidI,
-                                         diff=no,low_date=back_date),
-           incidD_new=ifelse(is.nan(incidD_new),incidD,incidD_new))
-}
+# if(method=="deaths"){
+#   temp2<-dat %>%
+#     group_by(USPS) %>%
+#     mutate(incidD_new=death_distribution(date,incidD,pois_out=out,diff=no,low_date=back_date),
+#            incidD_new=ifelse(is.nan(incidD_new),incidD,incidD_new))
+# } else {
+#   temp2<- dat %>%
+#     left_join(datI,by=c("USPS","date")) %>%
+#     group_by(USPS) %>%
+#     mutate(incidD_new=death_distribution(date,incidD,pois_out = out,incidI=incidI,
+#                                          diff=no,low_date=back_date))
+# }
+
+dat<- dat %>%
+  left_join(datI,by=c("USPS","date"))
+
+dat<-dat %>%
+  left_join(datS,by=c("date","USPS"))
+
+temp2<- dat %>%
+  group_by(USPS) %>%
+  mutate(incidD_new=death_distribution(date,incidD,pois_out=out,use_cases =TRUE,incidI=incidI,
+                                       support = TRUE,out_csse = out_csse,
+                                       diff = no,low_date = back_date))
+  
 
 
 final<- temp2 %>%
