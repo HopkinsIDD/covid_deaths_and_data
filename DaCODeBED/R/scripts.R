@@ -106,14 +106,16 @@ calc_zero_length<-function(incidD,date,d){
 death_distribution<-function(date,incidD,pois_out,use_cases=FALSE,incidI=incidD,
                              support=FALSE,diff=rep(0,length(incidD)),
                              out_csse=rep(0,length(incidD)),
-                             low_date=rep(NA,length(incidD))){
-  temp<-data.frame(date,incidD,pois_out,incidI,diff,low_date,out_csse)
+                             low_date=rep(NA,length(incidD)),
+                             cases_lag=2){
+
   if(use_cases){
     if(all(incidI==incidD)){
       stop("Please provide additional data for back distribution")
     }
+    incidI<-c(rep(0,cases_lag),incidI[0:(length(incidD)-cases_lag)])
   }
-
+  temp<-data.frame(date,incidD,pois_out,incidI,diff,low_date,out_csse)
   if(support){
   temp<- temp %>%
           mutate(pois_out= ifelse(pois_out ==1 | out_csse==1,1,0))
@@ -182,7 +184,7 @@ death_distribution<-function(date,incidD,pois_out,use_cases=FALSE,incidI=incidD,
         date_l=date_l_s
       }
     }
-    if(all(incidD==incidI)){
+    if(!use_cases){
       temp<-temp %>%
         mutate(flag=rep(0,length(date)),
                flag=ifelse(date>=date_l & date<=i,1,flag),
