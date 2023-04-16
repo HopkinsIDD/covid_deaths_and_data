@@ -42,5 +42,6 @@ The sample data is processed data from the [JHU CSSE COVID-19 Data Repository](h
 * _Weekly_Deaths_JHU-CSSE_Final_Gold_Standard_Outliers.csv_ - consists of the reported COVID-19 Deaths for all 50 states plus Washington D.C. and Puerto Rico along with indicators of the data points being data dumps which can be treated as gold standard outliers.
 * _Weekly_Deaths_JHU-CSSE_Visual_Outliers.csv_ - consists of the reported COVID-19 Deaths for all 50 states plus Washington D.C. and Puerto Rico along with indicators of the data points being data dumps identified visually. 
 
+This open-source project is licensed under GPL v3.0.
 
 
