@@ -40,9 +40,8 @@ dat<-dat %>%
 temp2<- dat %>%
   group_by(USPS) %>%
   mutate(incidD_new=death_distribution(date,incidD,pois_out=out_da,use_cases =TRUE,incidI=incidI,
-                                       support = TRUE,out_csse = out_csse,
-                                       diff = no,low_date = back_date,
-                                       cases_lag = 3))
+                                       support = FALSE))#,out_csse = out_csse,
+                                      # diff = no,low_date = back_date))
 
 final<- temp2 %>%
   select(date,incidD_new,USPS,out_da) %>%
@@ -80,27 +79,3 @@ temp2 %>%
   guides(fill=guide_legend(override.aes=list(color=c("transparent","transparent"))))  +
   theme(legend.position = c(0.98,0.98),
         legend.key.size=unit(1, "cm"))
-
-# temp2<-temp2 %>%
-#   filter(USPS!="AL_H")
-# write.csv(temp2,file="us_data_corrected.csv")
-# getwd()
-
-final <-temp2 %>%
-  filter(USPS=="AL_H") %>%
-  select(date,incidD_new,USPS) %>%
-  mutate(State="Alabama_Hypothetical")%>%
-  bind_rows(temp2 %>%
-              filter(USPS=="AL") %>%
-              select(date,incidD_new,USPS) %>%
-              mutate(State="Alabama")) %>%
-  rename(Deaths=incidD_new,Date=date) %>%
-  #mutate(Date=ifelse(USPS=="AL_H",Date+35,Date)) %>%
-  filter(Date >=as.Date("2021-04-24",format="%Y-%m-%d") &
-           Date<=as.Date("2021-11-20",format="%Y-%m-%d"))
-
-
-final %>%
-  #filter(USPS==abr) %>%
-  ggplot()+ geom_line(aes(x=Date,y=Deaths,color=State),position = "identity",size=2)+
-  labs(xlab="Date",ylab="Deaths")

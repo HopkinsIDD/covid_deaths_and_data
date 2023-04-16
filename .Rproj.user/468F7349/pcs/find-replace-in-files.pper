@@ -1,0 +1,14 @@
+{
+    "dialog-state": {
+        "query": "get_CSSE_US_data",
+        "path": "~/GitHub/COVIDScenarioPipeline/R/pkgs/covidcommon",
+        "regex": false,
+        "caseSensitive": false,
+        "wholeWord": false,
+        "filePatterns": [],
+        "excludeFilePatterns": [],
+        "resultsCount": 10,
+        "errorCount": 0,
+        "replaceErrors": ""
+    }
+}

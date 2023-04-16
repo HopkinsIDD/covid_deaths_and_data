@@ -1,0 +1,27 @@
+{
+    "id": "FB3F8868",
+    "path": "~/GitHub/covid_deaths_and_data/Thesis_ready.R",
+    "project_path": "Thesis_ready.R",
+    "type": "r_source",
+    "hash": "89472781",
+    "contents": "",
+    "dirty": false,
+    "created": 1680309564802.0,
+    "source_on_save": false,
+    "relative_order": 7,
+    "properties": {
+        "tempName": "Untitled1",
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "342,2",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1680941377,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1680941377730,
+    "read_only": false,
+    "read_only_alternatives": []
+}

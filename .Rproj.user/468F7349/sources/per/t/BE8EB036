@@ -1,0 +1,26 @@
+{
+    "id": "BE8EB036",
+    "path": "~/GitHub/covid_deaths_and_data/Deaths Visualization.R",
+    "project_path": "Deaths Visualization.R",
+    "type": "r_source",
+    "hash": "3307968367",
+    "contents": "",
+    "dirty": false,
+    "created": 1666069299509.0,
+    "source_on_save": false,
+    "relative_order": 1,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "261,0",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1680642125,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1680642125062,
+    "read_only": false,
+    "read_only_alternatives": []
+}

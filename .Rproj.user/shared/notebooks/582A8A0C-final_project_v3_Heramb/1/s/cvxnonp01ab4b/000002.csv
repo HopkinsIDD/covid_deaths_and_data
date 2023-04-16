@@ -1,0 +1,190 @@
+"0","```r
+
+seir_schisto_discrete_func <- function(params, max_time, time_step, initial_cond){
+  
+  # defining parameters
+  ## for human
+  beta_h = params$beta_h
+  beta_e = params$beta_e
+  kappa_h = params$kappa_h
+  kappa_e = params$kappa_e
+  sigma = params$sigma
+  gamma = params$gamma
+  mu = params$mu
+  rho1 = params$rho1
+  rho2 = params$rho2
+  theta_s = params$theta_s
+  theta_d = params$theta_d
+  first_campaign_days = params$first_campaign_days
+  second_campaign_days = params$second_campaign_days
+  
+  ## for vibrio
+  xi = params$xi
+  chi = params$chi
+  delta = params$delta
+  
+  time = seq(0, max_time, time_step)
+  nsteps = length(time)
+  
+  # initiate compartments
+  # unvaccinated paerts
+  S <- rep(NA, nsteps); S[1] = initial_cond['S']
+  E <- rep(NA, nsteps); E[1] = initial_cond['E']
+  I <- rep(NA, nsteps); I[1] = initial_cond['I']
+  R <- rep(NA, nsteps); R[1] = initial_cond['R']
+  # single-dose parts
+  Ss <- rep(NA, nsteps); Ss[1] = initial_cond['Ss']
+  Es <- rep(NA, nsteps); Es[1] = initial_cond['Es']
+  Is <- rep(NA, nsteps); Is[1] = initial_cond['Is']
+  Rs <- rep(NA, nsteps); Rs[1] = initial_cond['Rs']
+  # double-dose parts
+  Sd <- rep(NA, nsteps); Sd[1] = initial_cond['Sd']
+  Ed <- rep(NA, nsteps); Ed[1] = initial_cond['Ed']
+  Id <- rep(NA, nsteps); Id[1] = initial_cond['Id']
+  Rd <- rep(NA, nsteps); Rd[1] = initial_cond['Rd']
+  # vibrio parts
+  Bh <- rep(NA, nsteps); Bh[1] = initial_cond['Bh']
+  Be <- rep(NA, nsteps); Be[1] = initial_cond['Be']
+  incidI <- rep(NA, nsteps); incidI[1] = 0 #########$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+  incidI_s <- rep(NA, nsteps); incidI_s[1] = 0 #########$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+  incidI_d <- rep(NA, nsteps); incidI_d[1] = 0 ############$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+  
+  # calculate R0
+  N = initial_cond[\"S\"] + initial_cond[\"E\"] + initial_cond[\"I\"] + initial_cond[\"R\"] +
+    initial_cond[\"Ss\"] + initial_cond[\"Es\"] + initial_cond[\"Is\"] + initial_cond[\"Rs\"] +
+    initial_cond[\"Sd\"] + initial_cond[\"Ed\"] + initial_cond[\"Id\"] + initial_cond[\"Rd\"]
+  part1 = xi*N/(gamma+mu)
+  part2 = beta_h/(kappa_h*chi)
+  part3 = beta_e/(kappa_e*delta)
+  #cat(\"R0 =\",part1*(part2+part3))
+  
+  for(ii in 2:max_time){
+    
+    # changes in human compartments 
+    beta = (beta_h*max(Bh[ii-1],0) / (kappa_e+max(Bh[ii-1],0))) + (beta_e*max(Be[ii-1],0) / (kappa_e+max(Be[ii-1],0)))
+    
+    # unvaccinated parts
+    new_E = time_step * beta * max(S[ii-1],0)
+    new_I = time_step * sigma * max(E[ii-1],0)
+    new_R = time_step * gamma * max(I[ii-1],0)
+    incidI[ii]=new_I #############################$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+    
+    # one-dose parts
+    new_Es = time_step * beta * max(Ss[ii-1],0) * (1-theta_s)
+    new_Is = time_step * sigma * max(Es[ii-1],0)
+    new_Rs = time_step * gamma * max(Is[ii-1],0)
+    incidI_s[ii]=new_Is ###########################$$$$$$$$$$$$$$$$$$$$$$$$$$$
+  
+    
+    # two-dose parts
+    new_Ed = time_step * beta * max(Sd[ii-1],0) * (1-theta_d)
+    new_Id = time_step * sigma * max(Ed[ii-1],0)
+    new_Rd = time_step * gamma * max(Id[ii-1],0)
+    incidI_d[ii]=new_Id
+    
+    #########################################
+    ##### Vaccination Campaign #####
+    if (ii %in% first_campaign_days) {
+      
+      new_vac_S = time_step * rho1 * max(S[ii-1],0)
+      new_vac_E = time_step * rho1 * max(E[ii-1],0)
+      new_vac_I = time_step * rho1 * max(I[ii-1],0)
+      new_vac_R = time_step * rho1 * max(R[ii-1],0)
+      
+    } else if (ii %in% second_campaign_days) {
+      
+      new_vac_Ss = time_step * rho2 * max(Ss[ii-1],0)
+      new_vac_Es = time_step * rho2 * max(Es[ii-1],0)
+      new_vac_Is = time_step * rho2 * max(Is[ii-1],0)
+      new_vac_Rs = time_step * rho2 * max(Rs[ii-1],0)
+      
+    }
+    
+    #########################################
+    
+    ## changes in vibrio compaertments
+    new_Bh = time_step * xi * (max(I[ii-1],0) + max(Is[ii-1],0) + max(Id[ii-1],0))
+    new_Be = time_step * chi * max(Bh[ii-1],0)
+    new_deaths_Be = time_step * delta * max(Be[ii-1],0)
+    
+    # compartment model
+    ## humaen
+    
+    #########################################
+    ##### Vaccination Campaign #####
+    
+    if (ii %in% first_campaign_days) {
+      
+      ### unvaccinated part
+      S[ii] = S[(ii-1)] - new_E - new_vac_S
+      E[ii] = E[(ii-1)] + new_E - new_I - new_vac_E
+      I[ii] = I[(ii-1)] + new_I - new_R - new_vac_I
+      R[ii] = R[(ii-1)] + new_R - new_vac_R
+      
+      ### single-dose vaccinated part
+      Ss[ii] = Ss[(ii-1)] - new_Es + new_vac_S
+      Es[ii] = Es[(ii-1)] + new_Es - new_Is + new_vac_E
+      Is[ii] = Is[(ii-1)] + new_Is - new_Rs + new_vac_I
+      Rs[ii] = Rs[(ii-1)] + new_Rs + new_vac_R
+      
+      ### double-dose vaccinated part
+      Sd[ii] = Sd[(ii-1)] - new_Ed
+      Ed[ii] = Ed[(ii-1)] + new_Ed - new_Id
+      Id[ii] = Id[(ii-1)] + new_Id - new_Rd
+      Rd[ii] = Rd[(ii-1)] + new_Rd
+      
+    } else if (ii %in% second_campaign_days) {
+      
+      ### unvaccinated part
+      S[ii] = S[(ii-1)] - new_E
+      E[ii] = E[(ii-1)] + new_E - new_I
+      I[ii] = I[(ii-1)] + new_I - new_R
+      R[ii] = R[(ii-1)] + new_R
+      
+      ### single-dose vaccinated part
+      Ss[ii] = Ss[(ii-1)] - new_Es - new_vac_Ss
+      Es[ii] = Es[(ii-1)] + new_Es - new_Is - new_vac_Es
+      Is[ii] = Is[(ii-1)] + new_Is - new_Rs - new_vac_Is
+      Rs[ii] = Rs[(ii-1)] + new_Rs - new_vac_Rs
+      
+      ### double-dose vaccinated part
+      Sd[ii] = Sd[(ii-1)] - new_Ed + new_vac_Ss
+      Ed[ii] = Ed[(ii-1)] + new_Ed - new_Id + new_vac_Es
+      Id[ii] = Id[(ii-1)] + new_Id - new_Rd + new_vac_Is
+      Rd[ii] = Rd[(ii-1)] + new_Rd + new_vac_Rs
+      
+    } else {
+      
+      ### unvaccinated part
+      S[ii] = S[(ii-1)] - new_E
+      E[ii] = E[(ii-1)] + new_E - new_I
+      I[ii] = I[(ii-1)] + new_I - new_R
+      R[ii] = R[(ii-1)] + new_R
+      
+      ### single-dose vaccinated part
+      Ss[ii] = Ss[(ii-1)] - new_Es
+      Es[ii] = Es[(ii-1)] + new_Es - new_Is
+      Is[ii] = Is[(ii-1)] + new_Is - new_Rs
+      Rs[ii] = Rs[(ii-1)] + new_Rs
+      
+      ### double-dose vaccinated part
+      Sd[ii] = Sd[(ii-1)] - new_Ed
+      Ed[ii] = Ed[(ii-1)] + new_Ed - new_Id
+      Id[ii] = Id[(ii-1)] + new_Id - new_Rd
+      Rd[ii] = Rd[(ii-1)] + new_Rd
+      
+    }
+    #########################################
+    
+    ## vibrio
+    Bh[ii] = Bh[(ii-1)] + new_Bh - new_Be
+    Be[ii] = Be[(ii-1)] + new_Be - new_deaths_Be
+    
+  }
+  
+  out <- data.frame(cbind(time, S, E, I, R, Ss, Es, Is, Rs, 
+                          Sd, Ed, Id, Rd, Bh, Be,incidI,incidI_s,incidI_d))#$$$$$$$$$$$$$$$$$$$$$$
+  
+  return(out)
+}
+```"

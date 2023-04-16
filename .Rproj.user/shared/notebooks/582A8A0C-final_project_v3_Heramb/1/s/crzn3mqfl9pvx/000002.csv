@@ -1,0 +1,113 @@
+"0","```r
+library(plyr)
+# max_time is the length of time that the model runs 
+max_time = 90
+times <- seq(0, max_time, 1)
+
+# URBAN - initiate the parameters
+S=500000; E=0; I=1; R=0
+Ss=0; Es=0; Is=0; Rs=0
+Sd=0; Ed=0; Id=0; Rd=0
+Be=0; Bh=1000
+
+
+beta_e=9.62; 
+beta_h=7.22;
+nu = 2 # 0.5, 1, 2 # vaccination rate
+start_day = 45 # peak days
+
+
+kappa_h = 1429; kappa_e = 1000000
+sigma = 1/7; gamma=0.2; xi=1/1500; chi=4.8; delta=1/30; mu=0 
+theta_s=0.55; theta_d=0.77
+
+# RURAL - initiate the parameters
+# S=500000; E=0; I=1000; R=0
+# Ss=0; Es=0; Is=0; Rs=0
+# Sd=0; Ed=0; Id=0; Rd=0
+# Bh=1000; Be=500
+# beta_h=0.40; beta_e=0.20; kappa_h = 14.29; kappa_e = 10000.00
+# sigma = 0.71; gamma=0.002; xi=0.00001; chi=0.3; delta=0.05; mu=0.1
+# theta_s=0.1; theta_d=0.2
+
+# define the campaign dates and rates
+
+num_days = 5
+int_day = 1 # intervals
+end_day = start_day+(num_days*int_day)-1
+first_campaign_days = seq(from = start_day, to = end_day, by = int_day)
+
+N = S+E+I+R+Ss+Es+Is+Rs+Sd+Ed+Id+Rd # population size
+V = S*nu # total number of doses
+
+y_upper = round_any(max_time, 100, f = ceiling)
+colr=c('orange','red','blue')
+#par(mfrow = c(3,1))
+# single-dose or double-dose
+
+plot(NA, NA, xlim = c(0,round_any(max_time, y_upper, f = ceiling)), ylim = c(0,15000), xlab = 'time', ylab = 'Number of individuals',main=paste(\"Î²e=\",beta_e,\" Î²h=\",beta_h,' Doses=',V,' Start Day=',start_day))################$$$$$$$$$$$$$$$
+vac_choice_l= c(2,1,0) #  0 - unvacc, 1 - single, 2 - double
+for (i in 1:3){
+  vac_choice=vac_choice_l[i] ##$$$$$$$$$$$$$$$$$$$$$$$$$$$
+  if (vac_choice == 2) {
+    # double-dose
+    #print(\"22222222222222\")
+    rho1 = nu/(num_days*2) # vac rate for each campaign day
+    rho2 = nu/(num_days*2) # vac rate for each campaign day
+    first_campaign_days = seq(from = start_day, to = end_day, by = int_day)
+    second_campaign_days = first_campaign_days + 7 #####$$$$$$$$$$$$$$$$$$$$$$$$$$
+  } 
+  else if (vac_choice == 1) {
+    # single-dose
+    #print(\"1111111\")
+    rho1 = nu/num_days
+    rho2 = 0
+    first_campaign_days = seq(from = start_day, to = end_day, by = int_day)
+    second_campaign_days = c()
+  } 
+  else if (vac_choice == 0) {
+    # no vaccine
+    #print(\"000000\")
+    rho1 = 0
+    rho2 = 0
+    first_campaign_days = c()
+    second_campaign_days = c()
+  } 
+  else {
+    print(\"ERROR!\")
+  }
+  
+  # initiate parameters
+  params <- list(beta_h=beta_h, beta_e=beta_e, kappa_h = kappa_h, kappa_e = kappa_e,
+            sigma = sigma, gamma=gamma, xi=xi, chi=chi, delta=delta, mu=mu,
+            rho1=rho1, rho2=rho2, theta_s=theta_s, theta_d=theta_d,
+            first_campaign_days = first_campaign_days,
+            second_campaign_days = second_campaign_days)
+  initial_state = c(S=S, E=E, I=I, R=R, 
+                  Ss=Ss, Es=Es, Is=Is, Rs=Rs,
+                  Sd=Sd, Ed=Ed, Id=Id, Rd=Rd,
+                  Bh=Bh, Be=Be)
+  
+  # run the model
+  result1 <- seir_schisto_discrete_func(params = params, initial_cond=initial_state, 
+                                     max_time=max_time, time_step=1)
+  tot_I=result1$incidI+result1$incidI_s+result1$incidI_d ###$$$$$$$$$$$$$$$$$$$$$$$$
+  #tot_I=result1$E+result1$Es+result1$Ed
+  #tot_I=result1$I+result1$Is+result1$Id
+
+  lines(result1$time, tot_I, col = colr[i], lty = 1) ###$$$$$$$$$$$$$$$$$
+  print(sum(tot_I,na.rm=TRUE))
+
+}
+```"
+"1","[1] 351845.8
+[1] 349578.5
+[1] 365593.6
+"
+"0","```r
+legend('topright', legend = c('2Dose','1 Dose','Unvacc'), col = colr, pch = 16) ###$$$$$$$$$$$$$$$$$
+abline(v=start_day, col=\"black\", lty=2) #$$$$$$$$$$$$$$$$$$$$444
+```"
+"0","```r
+abline(v=start_day+7, col=\"black\", lty=2) ###$$$$$$$$$$$$$$$$$$$$$$$$$
+```"

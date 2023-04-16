@@ -1,0 +1,28 @@
+{
+    "id": "6E06409B",
+    "path": "~/GitHub/covid_deaths_and_data/Outlier Detection.R",
+    "project_path": "Outlier Detection.R",
+    "type": "r_source",
+    "hash": "3424765498",
+    "contents": "",
+    "dirty": false,
+    "created": 1666794761452.0,
+    "source_on_save": false,
+    "relative_order": 2,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "420,0",
+        "scrollLine": "0",
+        "docOutlineVisible": "0",
+        "docOutlineSize": "136"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1681294779,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1681294779583,
+    "read_only": false,
+    "read_only_alternatives": []
+}

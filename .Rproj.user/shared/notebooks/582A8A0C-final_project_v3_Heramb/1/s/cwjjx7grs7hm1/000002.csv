@@ -1,0 +1,75 @@
+"0","```r
+
+# plot
+# library(plyr)
+# y_upper = round_any(max_time, 100, f = ceiling)
+# 
+# par(mfrow = c(2,2))
+# 
+# # human - unvaccinated
+# plot(NA, NA, xlim = c(0,round_any(max_time, y_upper, f = ceiling)), ylim = c(0,500000), xlab = 'time', ylab = 'Number of indisiduals', main = \"Unvaccinated\")
+# N = result$S + result$E + result$I + result$R
+# lines(result$time, result$S, col = 'blue', lty = 1)
+# lines(result$time, result$E, col = 'green', lty = 1)
+# lines(result$time, result$I, col = 'red', lty = 1)
+# lines(result$time, result$R, col = 'orange', lty = 1)
+# lines(result$time, N, col = 'black', lty = 1)
+# legend('topright', legend = c('S', 'E','I', 'R', 'N'), col = c('blue', 'green', 'red', 'orange', 'black'), pch = 16)
+# # Vacc compaign days
+# for (l in first_campaign_days) {
+#   abline(v=l, col=\"grey\", lty=2)
+# }
+# for (l in second_campaign_days) {
+#   abline(v=l, col=\"deeppink\", lty=2)
+# }
+# 
+# N.max <- function(x) ifelse( !all(is.na(x)), max(x, na.rm=T), NA)
+# 
+# # human - single-dose
+# Ns = result$Ss + result$Es + result$Is + result$Rs
+# plot(NA, NA, xlim = c(0,y_upper), ylim = c(0,N.max(Ns)+100), xlab = 'time', ylab = 'Number of indisiduals', main = \"Single-dose\")
+# lines(result$time, result$Ss, col = 'blue', lty = 1)
+# lines(result$time, result$Es, col = 'green', lty = 1)
+# lines(result$time, result$Is, col = 'red', lty = 1)
+# lines(result$time, result$Rs, col = 'orange', lty = 1)
+# lines(result$time, Ns, col = 'black', lty = 1)
+# legend('topright', legend = c('S', 'E','I', 'R', 'N'), col = c('blue', 'green', 'red', 'orange', 'black'), pch = 16)
+# # Vacc compaign days
+# for (l in first_campaign_days) {
+#   abline(v=l, col=\"grey\", lty=2)
+# }
+# for (l in second_campaign_days) {
+#   abline(v=l, col=\"deeppink\", lty=2)
+# }
+# 
+# # human - ddouble-dose
+# Nd = result$Sd + result$Ed + result$Id + result$Rd
+# plot(NA, NA, xlim = c(0,y_upper), ylim = c(0,N.max(Nd)+100), xlab = 'time', ylab = 'Number of indisiduals', main = \"Double-dose\")
+# lines(result$time, result$Sd, col = 'blue', lty = 1)
+# lines(result$time, result$Ed, col = 'green', lty = 1)
+# lines(result$time, result$Id, col = 'red', lty = 1)
+# lines(result$time, result$Rd, col = 'orange', lty = 1)
+# lines(result$time, Nd, col = 'black', lty = 1)
+# legend('topright', legend = c('S', 'E','I', 'R', 'N'), col = c('blue', 'green', 'red', 'orange', 'black'), pch = 16)
+# # Vacc compaign days
+# for (l in first_campaign_days) {
+#   abline(v=l, col=\"grey\", lty=2)
+# }
+# for (l in second_campaign_days) {
+#   abline(v=l, col=\"deeppink\", lty=2)
+# }
+# 
+# # vibrio
+# plot(NA, NA, xlim = c(0,y_upper), ylim = c(0,1500), xlab = 'time', ylab = 'Number of vibrios', main = \"Vibrio\")
+# lines(result$time, result$Bh, col = 'cadetblue', lty = 1)
+# lines(result$time, result$Be, col = 'brown', lty = 1)
+# legend('topright', legend = c('Bh', 'Be'), col = c('cadetblue', 'brown'), pch = 16)
+# # Vacc compaign days
+# for (l in first_campaign_days) {
+#   abline(v=l, col=\"grey\", lty=2)
+# }
+# for (l in second_campaign_days) {
+#   abline(v=l, col=\"deeppink\", lty=2)
+# }
+
+```"
