@@ -36,4 +36,11 @@ The function also takes optional arguments depending upon the method of back dis
 ## Sample Data
 The sample data is processed data from the [JHU CSSE COVID-19 Data Repository](https://github.com/CSSEGISandData/COVID-19) which is present in the `data` folder. All the data is summarised weekly. The following data sets are present:
 
+* _Weekly_Cases_JHU-CSSE.csv_ – consists of the reported COVID-19 Cases for all 50 states plus Washington D.C. and Puerto Rico
+* _Weekly_Deaths_JHU-CSSE.csv_ – consists of the reported COVID-19 Deaths for all 50 states plus Washington D.C. and Puerto Rico
+* _Weekly_Deaths_JHU-CSSE_CorrectionRecords.csv_ – consists of the reported COVID-19 Deaths for all 50 states plus Washington D.C. and Puerto Rico along with indications of data points being data dumps along with the number of deaths dumped and the period they belong to.
+* _Weekly_Deaths_JHU-CSSE_Final_Gold_Standard_Outliers.csv_ - consists of the reported COVID-19 Deaths for all 50 states plus Washington D.C. and Puerto Rico along with indicators of the data points being data dumps which can be treated as gold standard outliers.
+* _Weekly_Deaths_JHU-CSSE_Visual_Outliers.csv_ - consists of the reported COVID-19 Deaths for all 50 states plus Washington D.C. and Puerto Rico along with indicators of the data points being data dumps identified visually. 
+
+
 
