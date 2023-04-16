@@ -44,7 +44,7 @@ run_seir_model_discrete <- function(beta, sigma,gamma,omega, initial_cond, max_t
   return(out)
 }
 
-high_beta_seir<-run_seir_model_discrete(beta= 0.7, sigma=1/3, gamma = 1/10, omega=1/60,
+high_beta_seir<-run_seir_model_discrete(beta= 0.7, sigma=1/3, gamma = 1/10, omega=1/20,
                                         initial_cond = c(S = 5000000, E=0,I = 1, R =0),
                                         max_time = 50,time_step = 1)
 
@@ -66,9 +66,9 @@ high_beta_seir<-high_beta_seir %>%
 N=5000000+1
 plot(NA, NA, xlim = c(min(high_beta_seir$times), 50), ylim=c(0,N),xlab = 'Time (In Days)', ylab = 'Number of Individuals',main='SEIR Model for hyptehtical pathogen')
 #plotting lines for high beta
-lines(high_beta_seir$times, high_beta_seir$S, col = 'blue', lty = 1)
-lines(high_beta_seir$times, high_beta_seir$E, col = 'red', lty = 1)
-lines(high_beta_seir$times, high_beta_seir$I, col = 'green', lty = 1)
-lines(high_beta_seir$times, high_beta_seir$R, col = 'black', lty = 1)
-lines(high_beta_seir$times, high_beta_seir$N, col = 'orange', lty = 1)
+lines(high_beta_seir$times, high_beta_seir$S, col = 'blue', lty = 1,size=3)
+lines(high_beta_seir$times, high_beta_seir$E, col = 'red', lty = 1,size=3)
+lines(high_beta_seir$times, high_beta_seir$I, col = 'green', lty = 1,size=3)
+lines(high_beta_seir$times, high_beta_seir$R, col = 'black', lty = 1,size=3)
+lines(high_beta_seir$times, high_beta_seir$N, col = 'orange', lty = 1,size=3)
 legend("topright", legend = c("S","E","I", "R","N"), col = c("blue", "red","green","black","orange"), pch = 16)

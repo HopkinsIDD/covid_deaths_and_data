@@ -397,8 +397,8 @@ dat<- dat %>%
 dat_t<-dat
 dat_t$state<-factor(dat$state,levels = unique(dat$state),ordered=TRUE)
 dat_t %>%
-  filter(USPS %in% c("DE","AR","MD","MO","NE","OK")) %>%
-  #filter(USPS %in% c("MD")) %>%
+  #filter(USPS %in% c("DE","AR","MD","MO","NE","OK")) %>%
+  filter(USPS %in% c("MD")) %>%
   ggplot() + 
   geom_col(aes(x = date, y = incidD, fill = factor(scaled_pois_ci_99.9_carlinga_out))) + 
   geom_vline(aes(xintercept = as.Date("2021-5-15", format = "%Y-%m-%d"), color = "May 15, 2021"), size = 1.2,lty=5) +
